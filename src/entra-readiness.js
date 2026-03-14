@@ -142,6 +142,119 @@ function checkSyncReadiness(db) {
     `Scope: ${totalUsers} actieve gebruikers, ${totalGroups} groepen. Overweeg OU-gebaseerde filtering in Entra Connect om alleen relevante objecten te synchroniseren.`);
 }
 
+// --- Access Package Proposals ---
+
+function generateAccessPackages(db) {
+  console.log('\nAccess Package voorstellen genereren...');
+
+  db.prepare('DELETE FROM entra_access_packages').run();
+
+  const roles = db.prepare(`
+    SELECT pr.id, pr.role_name, pr.role_layer, pr.function_title, pr.department
+    FROM proposed_roles pr
+  `).all();
+
+  if (roles.length === 0) {
+    console.log('  Geen rollen gevonden — draai eerst npm run rbac.');
+    return;
+  }
+
+  const insertPackage = db.prepare(`
+    INSERT INTO entra_access_packages (package_name, role_id, auto_assignment_rule, resources)
+    VALUES (?, ?, ?, ?)
+  `);
+
+  const tx = db.transaction(() => {
+    for (const role of roles) {
+      // Build auto-assignment rule based on Entra dynamic group syntax
+      let rule;
+      if (role.role_layer === 'basis' && role.function_title) {
+        rule = `(user.jobTitle -eq "${role.function_title}")`;
+      } else if (role.role_layer === 'afdeling' && role.function_title && role.department) {
+        rule = `(user.jobTitle -eq "${role.function_title}") and (user.department -eq "${role.department}")`;
+      } else {
+        rule = null;
+      }
+
+      // Gather resources: groups from this role + bundles linked to this role
+      const roleGroups = db.prepare('SELECT group_name FROM proposed_role_groups WHERE role_id = ?').all(role.id);
+      const roleBundles = db.prepare(`
+        SELECT ab.bundle_name FROM app_bundle_roles abr
+        JOIN app_bundles ab ON ab.id = abr.bundle_id
+        WHERE abr.role_id = ?
+      `).all(role.id);
+
+      const resources = {
+        groups: roleGroups.map(r => r.group_name),
+        bundles: roleBundles.map(r => r.bundle_name),
+      };
+
+      const packageName = role.role_name.replace(/^ROL-/, 'PKG-');
+
+      insertPackage.run(
+        packageName,
+        role.id,
+        rule,
+        JSON.stringify(resources)
+      );
+    }
+  });
+
+  tx();
+
+  const count = db.prepare('SELECT COUNT(*) as c FROM entra_access_packages').get().c;
+  console.log(`  ${count} Access Package voorstellen gegenereerd`);
+}
+
+// --- Dynamic Group Rules ---
+
+function generateDynamicRules(db) {
+  console.log('\nDynamic Group regels genereren...');
+
+  db.prepare('DELETE FROM entra_dynamic_rules').run();
+
+  const roles = db.prepare(`
+    SELECT pr.id, pr.role_name, pr.role_layer, pr.function_title, pr.department
+    FROM proposed_roles pr
+  `).all();
+
+  if (roles.length === 0) {
+    console.log('  Geen rollen gevonden — draai eerst npm run rbac.');
+    return;
+  }
+
+  const insertRule = db.prepare(`
+    INSERT INTO entra_dynamic_rules (role_id, group_name, membership_rule, description)
+    VALUES (?, ?, ?, ?)
+  `);
+
+  const tx = db.transaction(() => {
+    for (const role of roles) {
+      let membershipRule;
+      let description;
+
+      if (role.role_layer === 'basis' && role.function_title) {
+        const groupName = `DYN-${role.role_name.replace(/^ROL-/, '')}`;
+        membershipRule = `(user.jobTitle -eq "${role.function_title}")`;
+        description = `Dynamische groep voor alle medewerkers met functie "${role.function_title}"`;
+
+        insertRule.run(role.id, groupName, membershipRule, description);
+      } else if (role.role_layer === 'afdeling' && role.function_title && role.department) {
+        const groupName = `DYN-${role.role_name.replace(/^ROL-/, '')}`;
+        membershipRule = `(user.jobTitle -eq "${role.function_title}") and (user.department -eq "${role.department}")`;
+        description = `Dynamische groep voor "${role.function_title}" op afdeling "${role.department}"`;
+
+        insertRule.run(role.id, groupName, membershipRule, description);
+      }
+    }
+  });
+
+  tx();
+
+  const count = db.prepare('SELECT COUNT(*) as c FROM entra_dynamic_rules').get().c;
+  console.log(`  ${count} dynamic group regels gegenereerd`);
+}
+
 function runEntraCheck() {
   console.log('=== AD Opschonen — Entra ID Gereedheidscheck ===\n');
 
@@ -164,6 +277,13 @@ function runEntraCheck() {
   checkDisplayNames(db);
   checkManagedBy(db);
   checkSyncReadiness(db);
+
+  // Generate Access Package and Dynamic Group proposals if RBAC data exists
+  const roleCount = db.prepare('SELECT COUNT(*) as c FROM proposed_roles').get().c;
+  if (roleCount > 0) {
+    generateAccessPackages(db);
+    generateDynamicRules(db);
+  }
 
   const results = db.prepare(`
     SELECT check_name, status, severity, affected_count, details
@@ -198,6 +318,16 @@ function runEntraCheck() {
     console.log('\nEntra ID-migratie is GEREED. Geen blokkerende problemen gevonden.');
   }
 
+  // Summary of Access Packages and Dynamic Rules
+  if (roleCount > 0) {
+    const pkgCount = db.prepare('SELECT COUNT(*) as c FROM entra_access_packages').get().c;
+    const dynCount = db.prepare('SELECT COUNT(*) as c FROM entra_dynamic_rules').get().c;
+    console.log(`\n--- Entra ID Migratievoorstellen ---`);
+    console.log(`Access Packages: ${pkgCount}`);
+    console.log(`Dynamic Group regels: ${dynCount}`);
+    console.log('\nBekijk details in de webinterface: npm run viewer → Entra ID');
+  }
+
   db.close();
 }
 
@@ -205,4 +335,4 @@ if (require.main === module) {
   runEntraCheck();
 }
 
-module.exports = { runEntraCheck };
+module.exports = { runEntraCheck, generateAccessPackages, generateDynamicRules };

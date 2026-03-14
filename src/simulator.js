@@ -37,11 +37,30 @@ function buildSoll(db) {
   const soll = {};
   for (const r of roleUsers) {
     if (!soll[r.user_name]) {
-      soll[r.user_name] = { roles: new Set(), groups: new Set() };
+      soll[r.user_name] = { roles: new Set(), groups: new Set(), bundles: new Set() };
     }
     soll[r.user_name].roles.add(r.role_name);
     soll[r.user_name].groups.add(r.group_name);
   }
+
+  // Include groups from application bundles linked to user's roles
+  const bundleGroups = db.prepare(`
+    SELECT pru.user_name, ab.bundle_name, abg.group_name
+    FROM proposed_role_users pru
+    JOIN app_bundle_roles abr ON abr.role_id = pru.role_id
+    JOIN app_bundles ab ON ab.id = abr.bundle_id
+    JOIN app_bundle_groups abg ON abg.bundle_id = ab.id
+    WHERE pru.is_outlier = 0
+  `).all();
+
+  for (const r of bundleGroups) {
+    if (!soll[r.user_name]) {
+      soll[r.user_name] = { roles: new Set(), groups: new Set(), bundles: new Set() };
+    }
+    soll[r.user_name].groups.add(r.group_name);
+    soll[r.user_name].bundles.add(r.bundle_name);
+  }
+
   return soll;
 }
 
@@ -177,9 +196,13 @@ function runSimulation() {
   const ist = buildIst(db);
   console.log(`  ${Object.keys(ist).length} gebruikers met effectieve lidmaatschappen`);
 
-  console.log('SOLL-situatie berekenen (voorgestelde roltoewijzingen)...');
+  console.log('SOLL-situatie berekenen (voorgestelde roltoewijzingen + bundels)...');
   const soll = buildSoll(db);
+  const usersWithBundles = Object.values(soll).filter(s => s.bundles && s.bundles.size > 0).length;
   console.log(`  ${Object.keys(soll).length} gebruikers met rolvoorstellen`);
+  if (usersWithBundles > 0) {
+    console.log(`  ${usersWithBundles} gebruikers profiteren van applicatiebundels`);
+  }
 
   console.log('Vergelijking berekenen...');
   const diffs = computeDiff(ist, soll);

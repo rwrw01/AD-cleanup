@@ -111,6 +111,8 @@ function renderLayout(title, body, activePage) {
   .tab-bar a { padding: 8px 16px; color: #858585; text-decoration: none; border-bottom: 2px solid transparent; font-size: 13px; }
   .tab-bar a:hover { color: #cccccc; }
   .tab-bar a.active { color: #ffffff; border-bottom-color: #4fc1ff; }
+  .code-block { background: #2d2d2d; border: 1px solid #3c3c3c; border-radius: 4px; padding: 10px 14px; font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; }
+  .code-block code { color: #ce9178; }
 </style>
 </head>
 <body>

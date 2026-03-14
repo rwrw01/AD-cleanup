@@ -59,20 +59,35 @@ npm run viewer        # http://localhost:3600
 
 ### RBAC-rollenvoorstel
 
-Genereert een tweelaags rollenmodel op basis van functie en afdeling:
+Genereert een drielaags rollenmodel op basis van functie, afdeling en applicatiebundels:
 
-| Laag | Voorbeeld | Toelichting |
-|------|-----------|-------------|
-| Basisrol | `ROL-Verpleegkundige` | Gemeenschappelijke groepen voor iedereen met dezelfde functie |
-| Afdelingsrol | `ROL-Verpleegkundige-IC` | Extra groepen specifiek voor de afdeling |
+| Laag | Prefix | Voorbeeld | Toelichting |
+|------|--------|-----------|-------------|
+| Basisrol | `ROL-` | `ROL-Verpleegkundige` | Gemeenschappelijke groepen voor iedereen met dezelfde functie |
+| Afdelingsrol | `ROL-` | `ROL-Verpleegkundige-IC` | Extra groepen specifiek voor de afdeling |
+| Applicatiebundel | `APP-BUNDEL-` | `APP-BUNDEL-Klinisch-Basis` | Set applicatiegroepen die samen worden toegekend |
 
-Het algoritme clustert gebruikers op functietitel, berekent gemeenschappelijke groepen (Jaccard-similariteit), en wijst rollen toe met een vertrouwensscore.
+Het algoritme clustert gebruikers op functietitel, berekent gemeenschappelijke groepen (Jaccard-similariteit), en wijst rollen toe met een vertrouwensscore. Applicatiegroepen die in >80% van de rollen samen voorkomen worden automatisch gebundeld — in plaats van 15 losse koppelingen krijgt een rol 1 bundel.
+
+### AGDLP-structuur
+
+Genereert een herstructureringsvoorstel conform Microsoft AGDLP best practice:
+
+```
+Accounts → Global Groups (GG-) → Domain Local Groups (DL-) → Permissions
+```
+
+- **GG- groepen**: rolgroepen die gebruikers bevatten (hernoemd van ROL-)
+- **DL- groepen**: resourcegroepen die permissions krijgen
+- **Nesting**: GG- nest in DL- (1 niveau, Entra ID-compatible)
+
+Detecteert welke bestaande groepen al conform zijn en welke hernoemd moeten worden.
 
 ### IST/SOLL Simulatie
 
-Vergelijkt de huidige groepstoewijzingen (IST) met het RBAC-voorstel (SOLL) per gebruiker:
+Vergelijkt de huidige groepstoewijzingen (IST) met het RBAC-voorstel inclusief bundels (SOLL) per gebruiker:
 
-- **Toegevoegd** -- nieuwe groepen via de voorgestelde rol
+- **Toegevoegd** -- nieuwe groepen via de voorgestelde rol + bundel
 - **Verwijderd** -- huidige toegang die vervalt (risico: toegangsverlies)
 - **Behouden** -- ongewijzigde groepen
 
@@ -91,6 +106,11 @@ Controleert of de AD-structuur gesynchroniseerd kan worden naar Microsoft Entra 
 | Groepen zonder eigenaar | Nee (waarschuwing) |
 
 Resultaat: **GEREED**, **MOGELIJK** (met waarschuwingen), of **GEBLOKKEERD**.
+
+Genereert daarnaast per rol:
+
+- **Dynamic Group regels** -- Entra membership rules op basis van `user.jobTitle` en `user.department`, kopieerbaar naar Entra ID
+- **Access Package voorstellen** -- bundel van groepen en applicaties per rol, met auto-assignment rule voor Entra ID Governance
 
 ## PowerShell Export Scripts
 
@@ -129,12 +149,12 @@ Draai op een werkstation met de AD-module (RSAT). Gebruik `-MaxResults 100` om e
 ```
 scripts/                  PowerShell exports (on-premises)
 src/
-  database.js             SQLite schema (10 tabellen)
+  database.js             SQLite schema (16 tabellen)
   importer.js             CSV-import naar database
   analyzer.js             Probleemdetectie (10 categorieen)
-  rbac-engine.js          RBAC-rollenvoorstel genereren
-  simulator.js            IST/SOLL dry-run vergelijking
-  entra-readiness.js      Entra ID migratiecheck
+  rbac-engine.js          RBAC-rollen, applicatiebundels, AGDLP-voorstel
+  simulator.js            IST/SOLL dry-run vergelijking (incl. bundels)
+  entra-readiness.js      Entra ID check, Access Packages, dynamic groups
   report.js               CLI-rapport
   viewer.js               Webinterface op poort 3600
   views/                  Pagina-templates (dashboard, groepen, gebruikers, etc.)
@@ -150,9 +170,9 @@ data/                     Lokale data (niet in git)
 |----------|---------|
 | `npm run import` | CSV-bestanden importeren naar SQLite |
 | `npm run analyze` | Problemen detecteren |
-| `npm run rbac` | RBAC-rollenvoorstel genereren |
-| `npm run simulate` | IST/SOLL vergelijking uitvoeren |
-| `npm run entra` | Entra ID gereedheid toetsen |
+| `npm run rbac` | RBAC-rollen, applicatiebundels en AGDLP-voorstel genereren |
+| `npm run simulate` | IST/SOLL vergelijking uitvoeren (incl. bundels) |
+| `npm run entra` | Entra ID gereedheid + Access Packages + dynamic group regels |
 | `npm run report` | CLI-rapport genereren |
 | `npm run viewer` | Webinterface starten op http://localhost:3600 |
 

@@ -289,6 +289,12 @@ const server = http.createServer(async (req, res) => {
       case '/rbac/detail':
         html = pageRbac.renderDetail(query);
         break;
+      case '/rbac/bundle':
+        html = pageRbac.renderBundle(query);
+        break;
+      case '/rbac/agdlp':
+        html = pageRbac.renderAGDLP();
+        break;
       case '/simulator':
         html = pageSimulator.render(query);
         break;

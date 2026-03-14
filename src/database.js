@@ -161,6 +161,56 @@ function initDatabase() {
       details TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS app_bundles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      bundle_name TEXT NOT NULL,
+      description TEXT,
+      group_count INTEGER DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS app_bundle_groups (
+      bundle_id INTEGER NOT NULL,
+      group_name TEXT NOT NULL,
+      FOREIGN KEY(bundle_id) REFERENCES app_bundles(id),
+      UNIQUE(bundle_id, group_name)
+    );
+
+    CREATE TABLE IF NOT EXISTS app_bundle_roles (
+      bundle_id INTEGER NOT NULL,
+      role_id INTEGER NOT NULL,
+      FOREIGN KEY(bundle_id) REFERENCES app_bundles(id),
+      FOREIGN KEY(role_id) REFERENCES proposed_roles(id),
+      UNIQUE(bundle_id, role_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS entra_access_packages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      package_name TEXT NOT NULL,
+      role_id INTEGER,
+      auto_assignment_rule TEXT,
+      resources TEXT,
+      FOREIGN KEY(role_id) REFERENCES proposed_roles(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS entra_dynamic_rules (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      role_id INTEGER,
+      group_name TEXT NOT NULL,
+      membership_rule TEXT NOT NULL,
+      description TEXT,
+      FOREIGN KEY(role_id) REFERENCES proposed_roles(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS agdlp_proposals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      current_group TEXT NOT NULL,
+      proposed_name TEXT,
+      proposed_type TEXT,
+      proposed_scope TEXT,
+      nests_in TEXT,
+      description TEXT
+    );
+
     CREATE INDEX IF NOT EXISTS idx_users_department ON users(department);
     CREATE INDEX IF NOT EXISTS idx_users_title ON users(title);
     CREATE INDEX IF NOT EXISTS idx_users_enabled ON users(enabled);
@@ -188,6 +238,12 @@ function clearAnalysisData(db) {
     DELETE FROM proposed_roles;
     DELETE FROM simulation_results;
     DELETE FROM entra_checks;
+    DELETE FROM app_bundles;
+    DELETE FROM app_bundle_groups;
+    DELETE FROM app_bundle_roles;
+    DELETE FROM entra_access_packages;
+    DELETE FROM entra_dynamic_rules;
+    DELETE FROM agdlp_proposals;
   `);
 }
 
