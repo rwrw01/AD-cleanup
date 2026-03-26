@@ -328,11 +328,12 @@ function runEntraCheck() {
     console.log('\nBekijk details in de webinterface: npm run viewer → Entra ID');
   }
 
-  db.close();
+  const { closeDatabase } = require('./database'); closeDatabase();
 }
 
 if (require.main === module) {
-  runEntraCheck();
+  const { initEngine } = require('./database');
+  initEngine().then(() => runEntraCheck());
 }
 
 module.exports = { runEntraCheck, generateAccessPackages, generateDynamicRules };

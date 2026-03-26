@@ -215,11 +215,12 @@ function runSimulation() {
   console.log('\nDraai nu: npm run report   (volledig rapport)');
   console.log('      of: npm run viewer   (webinterface)');
 
-  db.close();
+  const { closeDatabase } = require('./database'); closeDatabase();
 }
 
 if (require.main === module) {
-  runSimulation();
+  const { initEngine } = require('./database');
+  initEngine().then(() => runSimulation());
 }
 
 module.exports = { runSimulation, buildIst, buildSoll, computeDiff };

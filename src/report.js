@@ -228,11 +228,11 @@ function runReport() {
   console.log('  Rapport gegenereerd op ' + new Date().toISOString());
   console.log('══════════════════════════════════════════════════════════════════════');
 
-  db.close();
 }
 
 if (require.main === module) {
-  runReport();
+  const { initEngine } = require('./database');
+  initEngine().then(() => runReport());
 }
 
 module.exports = { runReport, computeMaturityScores };

@@ -213,36 +213,44 @@ function detectAppBundles(db) {
     return;
   }
 
-  // Build co-occurrence matrix: how often do two groups appear together in roles?
   const roleIds = Object.keys(roleToGroups);
   const groupList = [...allGroupNames];
-  const groupRoleCount = {}; // group -> number of roles it appears in
+  console.log(`  ${groupList.length} unieke groepen in ${roleIds.length} rollen, co-occurrence berekenen...`);
 
+  // Build inverted index: group -> Set of role IDs (much faster than scanning all roles per pair)
+  const groupToRoles = {};
   for (const g of groupList) {
-    groupRoleCount[g] = 0;
-    for (const rid of roleIds) {
-      if (roleToGroups[rid].groups.has(g)) groupRoleCount[g]++;
+    groupToRoles[g] = new Set();
+  }
+  for (const rid of roleIds) {
+    for (const g of roleToGroups[rid].groups) {
+      groupToRoles[g].add(rid);
     }
   }
 
-  // For each pair, compute co-occurrence ratio
-  // co_occur(A,B) = roles_with_both / roles_with_either
+  // Skip groups that appear in very many roles (>50% of all roles) — these are generic groups, not app-specific
+  const maxRoleCount = Math.max(roleIds.length * 0.5, 3);
+  const candidateGroups = groupList.filter(g => groupToRoles[g].size >= 2 && groupToRoles[g].size <= maxRoleCount);
+  console.log(`  ${candidateGroups.length} kandidaat-groepen (verschijnen in 2-${Math.round(maxRoleCount)} rollen)`);
+
+  // For each pair of candidate groups, compute co-occurrence using set intersection (O(min(|A|,|B|)) per pair)
   const coOccurrence = {};
-  for (let i = 0; i < groupList.length; i++) {
-    for (let j = i + 1; j < groupList.length; j++) {
-      const a = groupList[i];
-      const b = groupList[j];
+  for (let i = 0; i < candidateGroups.length; i++) {
+    const a = candidateGroups[i];
+    const rolesA = groupToRoles[a];
+    for (let j = i + 1; j < candidateGroups.length; j++) {
+      const b = candidateGroups[j];
+      const rolesB = groupToRoles[b];
+      // Count intersection and union via the smaller set
       let both = 0;
-      let either = 0;
-      for (const rid of roleIds) {
-        const hasA = roleToGroups[rid].groups.has(a);
-        const hasB = roleToGroups[rid].groups.has(b);
-        if (hasA && hasB) both++;
-        if (hasA || hasB) either++;
+      const smaller = rolesA.size <= rolesB.size ? rolesA : rolesB;
+      const larger = rolesA.size <= rolesB.size ? rolesB : rolesA;
+      for (const rid of smaller) {
+        if (larger.has(rid)) both++;
       }
+      const either = rolesA.size + rolesB.size - both;
       if (either > 0 && both / either >= CO_OCCURRENCE_THRESHOLD) {
-        const key = `${i}:${j}`;
-        coOccurrence[key] = { a, b, ratio: both / either };
+        coOccurrence[`${i}:${j}`] = { a, b, ratio: both / either };
       }
     }
   }
@@ -558,11 +566,12 @@ function runRbac() {
   console.log('      of: npm run entra     (Entra ID + Access Packages)');
   console.log('      of: npm run report    (CLI-rapport)');
 
-  db.close();
+  const { closeDatabase } = require('./database'); closeDatabase();
 }
 
 if (require.main === module) {
-  runRbac();
+  const { initEngine } = require('./database');
+  initEngine().then(() => runRbac());
 }
 
 module.exports = { runRbac, generateRoles, detectAppBundles, generateAGDLP, clusterByFunction, jaccardSimilarity };

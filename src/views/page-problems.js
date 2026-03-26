@@ -49,7 +49,6 @@ function render(query) {
   }
 
   body += `</table>`;
-  db.close();
   return renderLayout('Problemen', body, 'problems');
 }
 

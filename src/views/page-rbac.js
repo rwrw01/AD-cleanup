@@ -99,7 +99,6 @@ function render(query) {
   }
 
   body += `</table>`;
-  db.close();
   return renderLayout('RBAC Voorstel', body, 'rbac');
 }
 
@@ -109,7 +108,6 @@ function renderDetail(query) {
 
   const role = db.prepare('SELECT * FROM proposed_roles WHERE id = ?').get(id);
   if (!role) {
-    db.close();
     return renderLayout('Rol niet gevonden', '<p>Rol niet gevonden.</p>', 'rbac');
   }
 
@@ -183,7 +181,6 @@ function renderDetail(query) {
   }
   body += `</table>`;
 
-  db.close();
   return renderLayout(role.role_name, body, 'rbac');
 }
 
@@ -193,7 +190,6 @@ function renderBundle(query) {
 
   const bundle = db.prepare('SELECT * FROM app_bundles WHERE id = ?').get(id);
   if (!bundle) {
-    db.close();
     return renderLayout('Bundel niet gevonden', '<p>Bundel niet gevonden.</p>', 'rbac');
   }
 
@@ -230,7 +226,6 @@ function renderBundle(query) {
   }
   body += `</table>`;
 
-  db.close();
   return renderLayout(bundle.bundle_name, body, 'rbac');
 }
 
@@ -294,7 +289,6 @@ function renderAGDLP() {
     body += `<p style="color:#858585">Geen AGDLP-voorstellen. Draai eerst: <code>npm run rbac</code></p>`;
   }
 
-  db.close();
   return renderLayout('AGDLP Voorstel', body, 'rbac');
 }
 

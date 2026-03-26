@@ -16,13 +16,19 @@ function statusBadge(status) {
 }
 
 const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1' },
-  { id: 'groups', label: 'Groepen', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
-  { id: 'users', label: 'Gebruikers', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
-  { id: 'problems', label: 'Problemen', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z' },
-  { id: 'rbac', label: 'RBAC Voorstel', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
-  { id: 'simulator', label: 'IST/SOLL', icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
-  { id: 'entra', label: 'Entra ID', icon: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z' },
+  { id: 'import', label: 'Import', step: 1, icon: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
+  { id: 'dashboard', label: 'Analyse', step: 2, icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1' },
+  { id: 'groups', label: 'Groepen', step: null, icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
+  { id: 'users', label: 'Gebruikers', step: null, icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
+  { id: 'problems', label: 'Problemen', step: null, icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 16.5c-.77.833.192 2.5 1.732 2.5z' },
+  { id: 'rbac', label: 'RBAC Voorstel', step: 3, icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+  { id: 'simulator', label: 'IST/SOLL', step: 4, icon: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' },
+  { id: 'entra', label: 'Entra ID', step: 5, icon: 'M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z' },
+  { id: 'conformity', label: 'Ontwerp-check', step: null, icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+  { id: 'config', label: 'Groepsontwerp', step: null, icon: 'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z' },
+  { id: 'personas', label: "Persona's", step: null, icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z' },
+  { id: 'export', label: 'Rapport', step: 6, icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
+  { id: 'help', label: 'Hulp', step: null, icon: 'M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
 ];
 
 function renderLayout(title, body, activePage) {
@@ -30,14 +36,17 @@ function renderLayout(title, body, activePage) {
 
   const navHtml = NAV_ITEMS.map(item => {
     const isActive = page === item.id ? ' active' : '';
-    return `<a href="/${item.id}" class="${isActive}" title="${item.label}">
+    const stepLabel = item.step ? `Stap ${item.step}: ${item.label}` : item.label;
+    return `<a href="/${item.id}" class="${isActive}" title="${stepLabel}">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="${item.icon}"/></svg>
     </a>`;
   }).join('\n');
 
   const sideNavHtml = NAV_ITEMS.map(item => {
     const isActive = page === item.id ? ' active' : '';
+    const stepPrefix = item.step ? `<span class="step-number">${item.step}</span>` : '<span class="step-spacer"></span>';
     return `<a href="/${item.id}" class="${isActive}">
+      ${stepPrefix}
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="${item.icon}"/></svg>
       ${item.label}
     </a>`;
@@ -60,10 +69,13 @@ function renderLayout(title, body, activePage) {
 
   .sidebar { width: 220px; background: #252526; border-right: 1px solid #1e1e1e; display: flex; flex-direction: column; flex-shrink: 0; }
   .sidebar .panel-header { padding: 10px 14px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #bbbbbb; font-weight: 600; border-bottom: 1px solid #1e1e1e; }
-  .sidebar a { display: flex; align-items: center; gap: 8px; padding: 5px 14px; color: #cccccc; text-decoration: none; font-size: 13px; }
+  .sidebar a { display: flex; align-items: center; gap: 6px; padding: 5px 14px; color: #cccccc; text-decoration: none; font-size: 13px; }
   .sidebar a:hover { background: #2a2d2e; }
   .sidebar a.active { background: #37373d; color: #ffffff; }
   .sidebar a svg { width: 16px; height: 16px; flex-shrink: 0; }
+  .step-number { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #0e639c; color: #ffffff; font-size: 10px; font-weight: 700; flex-shrink: 0; }
+  .sidebar a.active .step-number { background: #4fc1ff; color: #1e1e1e; }
+  .step-spacer { width: 18px; flex-shrink: 0; }
 
   .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   .titlebar { background: #3c3c3c; padding: 6px 16px; font-size: 13px; color: #969696; border-bottom: 1px solid #252526; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }

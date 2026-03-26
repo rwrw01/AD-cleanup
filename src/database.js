@@ -1,14 +1,156 @@
-const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+const isPackaged = typeof process.pkg !== 'undefined';
+const BASE_DIR = isPackaged ? path.dirname(process.execPath) : path.join(__dirname, '..');
+
+const DATA_DIR = path.join(BASE_DIR, 'data');
 const DB_PATH = path.join(DATA_DIR, 'ad-analysis.db');
+
+let SQL = null;
+
+async function initEngine() {
+  if (SQL) return;
+  const initSqlJs = require('sql.js');
+  SQL = await initSqlJs();
+}
+
+class PreparedStatement {
+  constructor(wrapper, sql) {
+    this._wrapper = wrapper;
+    this._sql = sql;
+  }
+
+  _bindParams(params) {
+    if (!params || params.length === 0) return undefined;
+    return params;
+  }
+
+  get(...params) {
+    const db = this._wrapper._db;
+    let stmt;
+    try {
+      stmt = db.prepare(this._sql);
+      if (params.length > 0) {
+        stmt.bind(params);
+      }
+      if (stmt.step()) {
+        const columns = stmt.getColumnNames();
+        const values = stmt.get();
+        const row = {};
+        for (let i = 0; i < columns.length; i++) {
+          row[columns[i]] = values[i];
+        }
+        return row;
+      }
+      return undefined;
+    } finally {
+      if (stmt) stmt.free();
+    }
+  }
+
+  all(...params) {
+    const db = this._wrapper._db;
+    let stmt;
+    try {
+      stmt = db.prepare(this._sql);
+      if (params.length > 0) {
+        stmt.bind(params);
+      }
+      const results = [];
+      while (stmt.step()) {
+        const columns = stmt.getColumnNames();
+        const values = stmt.get();
+        const row = {};
+        for (let i = 0; i < columns.length; i++) {
+          row[columns[i]] = values[i];
+        }
+        results.push(row);
+      }
+      return results;
+    } finally {
+      if (stmt) stmt.free();
+    }
+  }
+
+  run(...params) {
+    const db = this._wrapper._db;
+    db.run(this._sql, params);
+    this._wrapper._dirty = true;
+
+    const lastIdResult = db.exec('SELECT last_insert_rowid()');
+    const lastInsertRowid = lastIdResult.length > 0 ? lastIdResult[0].values[0][0] : 0;
+    const changes = db.getRowsModified();
+
+    return { lastInsertRowid, changes };
+  }
+}
+
+class DatabaseWrapper {
+  constructor(dbPath) {
+    if (!SQL) {
+      throw new Error('sql.js engine not initialized. Call initEngine() first.');
+    }
+    this._dbPath = dbPath;
+    this._dirty = false;
+
+    if (fs.existsSync(dbPath)) {
+      const buffer = fs.readFileSync(dbPath);
+      this._db = new SQL.Database(buffer);
+    } else {
+      this._db = new SQL.Database();
+    }
+  }
+
+  prepare(sql) {
+    return new PreparedStatement(this, sql);
+  }
+
+  exec(multiStatementSQL) {
+    this._db.exec(multiStatementSQL);
+    this._dirty = true;
+  }
+
+  transaction(fn) {
+    const self = this;
+    return function (...args) {
+      self._db.run('BEGIN');
+      try {
+        const result = fn(...args);
+        self._db.run('COMMIT');
+        self._dirty = true;
+        return result;
+      } catch (err) {
+        self._db.run('ROLLBACK');
+        throw err;
+      }
+    };
+  }
+
+  pragma(str) {
+    const sql = `PRAGMA ${str}`;
+    const result = this._db.exec(sql);
+    if (result.length > 0 && result[0].values.length > 0) {
+      return result[0].values[0][0];
+    }
+    return undefined;
+  }
+
+  close() {
+    if (this._dirty) {
+      const data = this._db.export();
+      const buffer = Buffer.from(data);
+      fs.mkdirSync(path.dirname(this._dbPath), { recursive: true });
+      fs.writeFileSync(this._dbPath, buffer);
+    }
+    this._db.close();
+  }
+}
 
 function initDatabase() {
   fs.mkdirSync(path.join(DATA_DIR, 'imports'), { recursive: true });
 
-  const db = new Database(DB_PATH);
+  const db = new DatabaseWrapper(DB_PATH);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 
@@ -214,35 +356,72 @@ function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_users_department ON users(department);
     CREATE INDEX IF NOT EXISTS idx_users_title ON users(title);
     CREATE INDEX IF NOT EXISTS idx_users_enabled ON users(enabled);
+    CREATE INDEX IF NOT EXISTS idx_users_sam ON users(sam_account_name);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_users_upn ON users(upn);
+    CREATE INDEX IF NOT EXISTS idx_users_manager ON users(manager_sam);
+    CREATE INDEX IF NOT EXISTS idx_users_dept_title ON users(department, title);
+    CREATE INDEX IF NOT EXISTS idx_users_enabled_title ON users(enabled, title);
     CREATE INDEX IF NOT EXISTS idx_memberships_group ON memberships(group_name);
     CREATE INDEX IF NOT EXISTS idx_memberships_member ON memberships(member_name);
+    CREATE INDEX IF NOT EXISTS idx_memberships_type ON memberships(member_type);
+    CREATE INDEX IF NOT EXISTS idx_memberships_group_type ON memberships(group_name, member_type);
+    CREATE INDEX IF NOT EXISTS idx_memberships_member_type ON memberships(member_name, member_type);
     CREATE INDEX IF NOT EXISTS idx_effective_user ON effective_memberships(user_name);
     CREATE INDEX IF NOT EXISTS idx_effective_group ON effective_memberships(group_name);
+    CREATE INDEX IF NOT EXISTS idx_effective_depth ON effective_memberships(depth);
+    CREATE INDEX IF NOT EXISTS idx_effective_user_group ON effective_memberships(user_name, group_name);
     CREATE INDEX IF NOT EXISTS idx_findings_severity ON findings(severity);
     CREATE INDEX IF NOT EXISTS idx_findings_category ON findings(category);
+    CREATE INDEX IF NOT EXISTS idx_proposed_roles_layer ON proposed_roles(role_layer);
+    CREATE INDEX IF NOT EXISTS idx_proposed_role_groups_role ON proposed_role_groups(role_id);
+    CREATE INDEX IF NOT EXISTS idx_proposed_role_groups_group ON proposed_role_groups(group_name);
+    CREATE INDEX IF NOT EXISTS idx_proposed_role_users_role ON proposed_role_users(role_id);
+    CREATE INDEX IF NOT EXISTS idx_proposed_role_users_user ON proposed_role_users(user_name);
+    CREATE INDEX IF NOT EXISTS idx_simulation_user ON simulation_results(user_name);
+    CREATE INDEX IF NOT EXISTS idx_simulation_type ON simulation_results(change_type);
+    CREATE INDEX IF NOT EXISTS idx_groups_name ON groups(name);
+    CREATE INDEX IF NOT EXISTS idx_app_bundle_groups_bundle ON app_bundle_groups(bundle_id);
+    CREATE INDEX IF NOT EXISTS idx_app_bundle_roles_role ON app_bundle_roles(role_id);
+    CREATE INDEX IF NOT EXISTS idx_agdlp_type ON agdlp_proposals(proposed_type);
   `);
 
   return db;
 }
 
+let _singleton = null;
+
 function getDatabase() {
-  return initDatabase();
+  if (_singleton) return _singleton;
+  _singleton = initDatabase();
+  return _singleton;
+}
+
+function closeDatabase() {
+  if (_singleton) {
+    _singleton.close();
+    _singleton = null;
+  }
+}
+
+function resetDatabase() {
+  _singleton = null;
 }
 
 function clearAnalysisData(db) {
   db.exec(`
-    DELETE FROM effective_memberships;
-    DELETE FROM findings;
-    DELETE FROM proposed_role_users;
-    DELETE FROM proposed_role_groups;
-    DELETE FROM proposed_roles;
-    DELETE FROM simulation_results;
-    DELETE FROM entra_checks;
-    DELETE FROM app_bundles;
     DELETE FROM app_bundle_groups;
     DELETE FROM app_bundle_roles;
     DELETE FROM entra_access_packages;
     DELETE FROM entra_dynamic_rules;
+    DELETE FROM proposed_role_users;
+    DELETE FROM proposed_role_groups;
+    DELETE FROM app_bundles;
+    DELETE FROM proposed_roles;
+    DELETE FROM effective_memberships;
+    DELETE FROM findings;
+    DELETE FROM simulation_results;
+    DELETE FROM entra_checks;
     DELETE FROM agdlp_proposals;
   `);
 }
@@ -326,8 +505,11 @@ function getFindingsByCategory(db) {
 }
 
 module.exports = {
+  initEngine,
   initDatabase,
   getDatabase,
+  closeDatabase,
+  resetDatabase,
   clearAnalysisData,
   clearImportData,
   getStats,

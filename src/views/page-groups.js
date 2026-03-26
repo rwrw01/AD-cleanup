@@ -55,7 +55,6 @@ function render(query) {
   }
 
   body += `</table>`;
-  db.close();
   return renderLayout('Groepen', body, 'groups');
 }
 
@@ -65,7 +64,6 @@ function renderDetail(query) {
 
   const group = db.prepare('SELECT * FROM groups WHERE name = ?').get(name);
   if (!group) {
-    db.close();
     return renderLayout('Groep niet gevonden', '<p>Groep niet gevonden.</p>', 'groups');
   }
 
@@ -109,7 +107,6 @@ function renderDetail(query) {
     body += `</table>`;
   }
 
-  db.close();
   return renderLayout(name, body, 'groups');
 }
 

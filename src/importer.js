@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { parse } = require('csv-parse/sync');
-const { getDatabase, clearImportData, DATA_DIR } = require('./database');
+const { getDatabase, closeDatabase, clearImportData, DATA_DIR } = require('./database');
 
 const IMPORT_DIR = path.join(DATA_DIR, 'imports');
 
@@ -232,11 +232,12 @@ function runImport() {
   console.log(`  Service accounts: ${saCount}`);
   console.log('\nDraai nu: npm run analyze');
 
-  db.close();
+  closeDatabase();
 }
 
 if (require.main === module) {
-  runImport();
+  const { initEngine } = require('./database');
+  initEngine().then(() => runImport());
 }
 
 module.exports = { runImport, readCsv, importUsers, importGroups, importMemberships, importOUs, importServiceAccounts };

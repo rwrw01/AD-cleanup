@@ -69,7 +69,6 @@ function render(query) {
   }
 
   body += `</table>`;
-  db.close();
   return renderLayout('IST/SOLL Simulatie', body, 'simulator');
 }
 
@@ -125,7 +124,6 @@ function renderDetail(query) {
     body += `</table>`;
   }
 
-  db.close();
   return renderLayout(`IST/SOLL: ${name}`, body, 'simulator');
 }
 

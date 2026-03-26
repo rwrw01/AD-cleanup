@@ -436,11 +436,12 @@ function runAnalysis() {
   console.log('\nDraai nu: npm run rbac  (RBAC-voorstel)');
   console.log('      of: npm run report (CLI-rapport)');
 
-  db.close();
+  const { closeDatabase } = require('./database'); closeDatabase();
 }
 
 if (require.main === module) {
-  runAnalysis();
+  const { initEngine } = require('./database');
+  initEngine().then(() => runAnalysis());
 }
 
 module.exports = {

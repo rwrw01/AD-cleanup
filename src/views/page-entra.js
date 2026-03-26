@@ -106,7 +106,6 @@ function render() {
     body += `</table>`;
   }
 
-  db.close();
   return renderLayout('Entra ID Gereedheid', body, 'entra');
 }
 

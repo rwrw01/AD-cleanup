@@ -1,8 +1,9 @@
 {
   "name": "ad-opschonen",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Active Directory cleanup and RBAC rationalization tool for healthcare",
   "main": "src/viewer.js",
+  "bin": "src/viewer.js",
   "scripts": {
     "import": "node src/importer.js",
     "analyze": "node src/analyzer.js",
@@ -10,14 +11,30 @@
     "simulate": "node src/simulator.js",
     "entra": "node src/entra-readiness.js",
     "report": "node src/report.js",
-    "viewer": "node src/viewer.js"
+    "report:docx": "node src/report-docx.js",
+    "viewer": "node src/viewer.js",
+    "build": "npx pkg . --output dist/adcleaner.exe"
+  },
+  "pkg": {
+    "assets": [
+      "node_modules/sql.js/dist/sql-wasm.wasm",
+      "node_modules/csv-parse/**/*"
+    ],
+    "scripts": [
+      "node_modules/csv-parse/dist/cjs/sync.cjs"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "dist"
   },
   "keywords": [],
   "author": "",
   "license": "EUPL-1.2",
   "type": "commonjs",
   "dependencies": {
-    "better-sqlite3": "12.6.2",
-    "csv-parse": "5.6.0"
+    "csv-parse": "5.6.0",
+    "docx": "9.6.1",
+    "sql.js": "1.12.0"
   }
 }

@@ -51,7 +51,6 @@ function render(query) {
   }
 
   body += `</table>`;
-  db.close();
   return renderLayout('Gebruikers', body, 'users');
 }
 
@@ -61,7 +60,6 @@ function renderDetail(query) {
 
   const user = db.prepare('SELECT * FROM users WHERE sam_account_name = ?').get(name);
   if (!user) {
-    db.close();
     return renderLayout('Gebruiker niet gevonden', '<p>Gebruiker niet gevonden.</p>', 'users');
   }
 
@@ -108,7 +106,6 @@ function renderDetail(query) {
     body += `</table>`;
   }
 
-  db.close();
   return renderLayout(user.display_name || user.sam_account_name, body, 'users');
 }
 

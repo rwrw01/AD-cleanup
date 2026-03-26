@@ -49,7 +49,6 @@ function render() {
     body += `</table>`;
   }
 
-  db.close();
   return renderLayout('Dashboard', body, 'dashboard');
 }
 
