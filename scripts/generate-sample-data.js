@@ -170,7 +170,15 @@ const ADMIN_GROUPS = [
   'ICT_Beheerders', 'EPD_Beheerders',
 ];
 
-const ALL_GROUPS = [...APP_GROUPS, ...LEGACY_GROUPS, ...DEPT_GROUPS, ...NESTED_GROUPS, ...ADMIN_GROUPS];
+// Design-convention groups (target architecture: fga/affu/afdl containers + appl/drvm/ntfs/ctxr resources)
+const DESIGN_GROUPS = [
+  'FGA - Verpleegkundigen', 'FGA - Medisch Specialist', 'FGA - Externe medewerker',
+  'AFFU-IC-Verpleging', 'AFDL-Chirurgie',
+  'APPL-EPD-Lezen', 'APPL-EPD-Schrijven', 'APPL-PACS-Beelden',
+  'DRVM-Afdelingsschijf-CHI', 'NTFS-Data-Chirurgie-RW', 'CTXR-Klinisch-Desktop',
+];
+
+const ALL_GROUPS = [...APP_GROUPS, ...LEGACY_GROUPS, ...DEPT_GROUPS, ...NESTED_GROUPS, ...ADMIN_GROUPS, ...DESIGN_GROUPS];
 
 for (const gName of ALL_GROUPS) {
   const isAdmin = ADMIN_GROUPS.includes(gName);
@@ -221,6 +229,15 @@ const nestingChain = [
   ['Niv1_Alle_Klinisch', 'APP-EPD-Lezen'],
   ['Niv2_Artsen_Alle', 'APP-EPD-Schrijven'],
   ['Niv7_VP_IC_Dag_Senior_EPD_Admin', 'APP-EPD-Admin'],
+  // Design-convention nesting: valid links plus deliberate violations
+  // so the conformity analysis has something to detect
+  ['APPL-EPD-Lezen', 'AFFU-IC-Verpleging'],            // valid: container in resource
+  ['DRVM-Afdelingsschijf-CHI', 'AFDL-Chirurgie'],      // valid: container in resource
+  ['CTXR-Klinisch-Desktop', 'FGA - Verpleegkundigen'], // valid: fga in ctxr
+  ['APPL-EPD-Schrijven', 'APPL-EPD-Lezen'],            // violation: appl-in-appl (soortgenoot)
+  ['FGA - Verpleegkundigen', 'APPL-PACS-Beelden'],     // violation: resource in container (omgekeerd)
+  ['FGA - Verpleegkundigen', 'AFFU-IC-Verpleging'],    // violation: affu-in-fga
+  ['FGA - Verpleegkundigen', 'AFDL-Chirurgie'],        // violation: afdl-in-fga
 ];
 
 for (const [parent, child] of nestingChain) {
@@ -248,6 +265,7 @@ for (const u of users) {
     memberships.push({ GroupName: 'APP-EPD-Lezen', MemberName: u.SamAccountName, MemberType: 'user', MemberDN: u.DistinguishedName, GroupDN: '' });
     memberships.push({ GroupName: 'APP-EPD-Schrijven', MemberName: u.SamAccountName, MemberType: 'user', MemberDN: u.DistinguishedName, GroupDN: '' });
     memberships.push({ GroupName: 'Klinisch personeel', MemberName: u.SamAccountName, MemberType: 'user', MemberDN: u.DistinguishedName, GroupDN: '' });
+    memberships.push({ GroupName: 'FGA - Verpleegkundigen', MemberName: u.SamAccountName, MemberType: 'user', MemberDN: u.DistinguishedName, GroupDN: '' });
 
     // Nested groups for IC nurses
     if (dept.abbr === 'IC') {
@@ -271,6 +289,7 @@ for (const u of users) {
     memberships.push({ GroupName: 'APP-PACS-Beelden', MemberName: u.SamAccountName, MemberType: 'user', MemberDN: u.DistinguishedName, GroupDN: '' });
     memberships.push({ GroupName: 'Medisch', MemberName: u.SamAccountName, MemberType: 'user', MemberDN: u.DistinguishedName, GroupDN: '' });
     memberships.push({ GroupName: 'Niv2_Artsen_Alle', MemberName: u.SamAccountName, MemberType: 'user', MemberDN: u.DistinguishedName, GroupDN: '' });
+    memberships.push({ GroupName: 'FGA - Medisch Specialist', MemberName: u.SamAccountName, MemberType: 'user', MemberDN: u.DistinguishedName, GroupDN: '' });
   }
 
   // Office 365
@@ -301,6 +320,38 @@ if (overloadedAdmin) {
       memberships.push({ GroupName: g, MemberName: overloadedAdmin.SamAccountName, MemberType: 'user', MemberDN: overloadedAdmin.DistinguishedName, GroupDN: '' });
     }
   }
+}
+
+// --- Technical accounts in the users export (empty Title -> persona 'Technisch account') ---
+const TECHNICAL_USERS = [
+  { sam: 'sa_backup_agent', ou: 'Service Accounts', desc: 'Backup agent service account' },
+  { sam: 'adm_jdevries', ou: 'Admin Users', desc: 'Beheeraccount J. de Vries' },
+  { sam: 'fm_receptie', ou: 'Functional Mailboxes', desc: 'Functionele mailbox receptie' },
+  { sam: 'al_balie01', ou: 'Autologon', desc: 'Autologon balie-PC 01' },
+  { sam: 'healthmailbox0a1b2c', ou: 'Exchange', desc: 'Exchange health mailbox' },
+  { sam: 'lv_siemens', ou: 'Leveranciers', desc: 'Leveranciersaccount Siemens' },
+];
+for (const t of TECHNICAL_USERS) {
+  users.push({
+    SamAccountName: t.sam,
+    DisplayName: t.sam,
+    EmailAddress: '',
+    Department: '',
+    Title: '',
+    ManagerSam: '',
+    Enabled: 'True',
+    LastLogonDate: randomDate(2025, 2026),
+    PasswordLastSet: randomDate(2023, 2026),
+    PasswordNeverExpires: 'True',
+    DistinguishedName: `CN=${t.sam},OU=${t.ou},DC=ziekenhuis,DC=local`,
+    EmployeeID: '',
+    EmployeeType: 'Technisch',
+    WhenCreated: randomDate(2015, 2024),
+    UserPrincipalName: `${t.sam}@ziekenhuis.local`,
+    LockedOut: 'False',
+    AccountExpirationDate: '',
+    Description: t.desc,
+  });
 }
 
 // --- Generate OUs ---

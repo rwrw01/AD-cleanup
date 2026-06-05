@@ -1,7 +1,6 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
 const { getDatabase, closeDatabase, clearImportData, clearAnalysisData, DATA_DIR } = require('./database');
 
 const PORT = parseInt(process.env.PORT, 10) || 3600;
@@ -19,8 +18,13 @@ const pagePersonas = require('./views/page-personas');
 const pageHelp = require('./views/page-help');
 
 function parseQuery(urlStr) {
-  const parsed = url.parse(urlStr, true);
-  return { pathname: parsed.pathname, query: parsed.query || {} };
+  // WHATWG URL API instead of deprecated url.parse() (DEP0169)
+  const parsed = new URL(urlStr, 'http://localhost');
+  const query = {};
+  for (const [key, value] of parsed.searchParams) {
+    query[key] = value;
+  }
+  return { pathname: parsed.pathname, query };
 }
 
 function parseFormData(req) {
@@ -179,6 +183,10 @@ async function handleRunAction(action, res) {
       const outputPath = await runReport(orgName);
       const filename = path.basename(outputPath);
       sendJson(res, { success: true, message: `Rapport gegenereerd: ${filename}`, filename });
+    } else if (action === 'import-from-ps') {
+      const { runImport } = require('./importer');
+      runImport();
+      sendJson(res, { success: true, message: 'Import vanuit PowerShell-export geslaagd.' });
     } else if (action === 'clear-analysis') {
       const db = getDatabase();
       clearAnalysisData(db);
@@ -644,18 +652,6 @@ const server = http.createServer(async (req, res) => {
         } else {
           sendJson(res, { success: true, output });
         }
-      } catch (err) {
-        sendJson(res, { error: err.message }, 500);
-      }
-      return;
-    }
-
-    // Auto-import after PowerShell export
-    if (req.method === 'POST' && pathname === '/api/run/import-from-ps') {
-      try {
-        const { runImport } = require('./importer');
-        runImport();
-        sendJson(res, { success: true, message: 'Import vanuit PowerShell-export geslaagd.' });
       } catch (err) {
         sendJson(res, { error: err.message }, 500);
       }

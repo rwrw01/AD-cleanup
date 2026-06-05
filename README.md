@@ -178,12 +178,14 @@ data/                     Lokale data (niet in git)
 
 ## Dependencies
 
-| Package | Functie |
-|---------|---------|
-| [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) | SQLite database driver |
-| [csv-parse](https://github.com/adaltas/node-csv) | CSV parser |
+| Package | Functie | Licentie |
+|---------|---------|----------|
+| [csv-parse](https://github.com/adaltas/node-csv) | CSV parser | MIT |
+| [docx](https://github.com/dolanmiu/docx) | DOCX-rapportgeneratie | MIT |
+| [sql.js](https://github.com/sql-js/sql.js) | SQLite database (WebAssembly) | MIT |
+| [@yao-pkg/pkg](https://github.com/yao-pkg/pkg) (dev) | Standalone executable build | MIT |
 
-Vereist [Node.js](https://nodejs.org) en [PowerShell](https://github.com/PowerShell/PowerShell) met RSAT AD-module voor de exports.
+Vereist [Node.js](https://nodejs.org) 22+ (LTS) en [PowerShell](https://github.com/PowerShell/PowerShell) met RSAT AD-module voor de exports.
 
 ## Licentie
 
