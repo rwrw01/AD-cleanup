@@ -2,24 +2,6 @@
 
 Active Directory analyse- en opschoontool. Importeert AD-exports (CSV), detecteert problemen, genereert een RBAC-rollenvoorstel, simuleert de impact, en toetst Entra ID-gereedheid. Resultaten zijn zichtbaar in een webinterface.
 
-## Screenshots
-
-| Dashboard | Problemen |
-|-----------|-----------|
-| ![Dashboard](docs/screenshot-dashboard.png) | ![Problemen](docs/screenshot-problems.png) |
-
-| Groepen | Gebruikers |
-|---------|------------|
-| ![Groepen](docs/screenshot-groups.png) | ![Gebruikers](docs/screenshot-users.png) |
-
-| RBAC Voorstel | IST/SOLL Simulatie |
-|---------------|-------------------|
-| ![RBAC](docs/screenshot-rbac.png) | ![Simulator](docs/screenshot-simulator.png) |
-
-| Entra ID Gereedheid | Import |
-|---------------------|--------|
-| ![Entra](docs/screenshot-entra.png) | ![Import](docs/screenshot-import.png) |
-
 ## Quick Start
 
 ```bash
